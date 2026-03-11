@@ -1,5 +1,8 @@
 # OpenClaw OS — Web Desktop UI Framework
 
+[![CI](https://github.com/aidi1723/openclaw-os/actions/workflows/ci.yml/badge.svg)](https://github.com/aidi1723/openclaw-os/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A Next.js + Tailwind **desktop-style UI framework** that runs in the browser.
 
 It provides a window manager, launcher, local-first state primitives, and a few example workflow apps
@@ -20,6 +23,8 @@ This repository is an early public foundation release:
 - Window manager: z-order, focus, minimize/restore, drag, snap, position persistence
 - Spotlight launcher: app search + command execution
 - Local-first storage: settings, drafts, tasks, publish history
+- Solutions Hub: curated real-world workflows you can install as Playbooks
+- Playbooks: local-first SOP library (export/import as JSON)
 - Publishing hub: safe-by-default dispatch with bring-your-own connectors
 - Example local webhook connector with receipts UI (`npm run webhook:dev`)
 - API routes for LLM / OpenClaw / publish dispatch workflows
@@ -62,6 +67,8 @@ This example connector only records receipts locally. It does **not** publish to
 - [Getting Started](docs/GETTING_STARTED.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Connectors](docs/CONNECTORS.md)
+- [Connector Recipes](docs/CONNECTOR_RECIPES.md)
+- [Use Cases](docs/USE_CASES.md)
 - [Privacy](docs/PRIVACY.md)
 
 ### Operational docs
@@ -74,6 +81,7 @@ This example connector only records receipts locally. It does **not** publish to
 
 ### Release notes
 - [v0.1.0](docs/releases/v0.1.0.md)
+- [v0.2.0 (draft)](docs/releases/v0.2.0-draft.md)
 
 ## Repository structure
 

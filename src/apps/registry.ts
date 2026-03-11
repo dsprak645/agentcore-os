@@ -10,6 +10,7 @@ import {
   Settings,
   Share2,
   BriefcaseBusiness,
+  Layers,
 } from "lucide-react";
 import type { AppManifest, AppId } from "@/apps/types";
 import { CreativeStudioAppWindow } from "@/components/apps/CreativeStudioAppWindow";
@@ -21,6 +22,7 @@ import { SettingsAppWindow } from "@/components/apps/SettingsAppWindow";
 import { TaskManagerAppWindow } from "@/components/apps/TaskManagerAppWindow";
 import { PublisherAppWindow } from "@/components/apps/PublisherAppWindow";
 import { SoloOpsAppWindow } from "@/components/apps/SoloOpsAppWindow";
+import { SolutionsHubAppWindow } from "@/components/apps/SolutionsHubAppWindow";
 
 const appList: AppManifest[] = [
   {
@@ -86,6 +88,14 @@ const appList: AppManifest[] = [
     window: SoloOpsAppWindow,
     desktop: true,
     dock: true,
+  },
+  {
+    id: "solutions_hub",
+    name: "方案库",
+    icon: Layers,
+    window: SolutionsHubAppWindow,
+    desktop: true,
+    dock: false,
   },
   {
     id: "settings",

@@ -29,6 +29,7 @@ export default function Home() {
 
   const [appStateById, setAppStateById] = useState<Record<AppId, AppState>>({
     solo_ops: "closed",
+    solutions_hub: "closed",
     media_ops: "closed",
     creative_studio: "closed",
     knowledge_vault: "closed",
@@ -132,6 +133,52 @@ export default function Home() {
       }
 
       if (spotlightOpenRef.current) return;
+
+      // Window tiling (desktop UX).
+      if ((e.metaKey || e.ctrlKey) && e.altKey) {
+        if (isTypingTarget(e.target)) return;
+        const top = getTopWindow();
+        if (!top) return;
+        const storageKey = `openclaw.window.${top}`;
+
+        const key = e.key;
+        if (key === "ArrowLeft") {
+          e.preventDefault();
+          window.dispatchEvent(
+            new CustomEvent("openclaw:window-command", {
+              detail: { storageKey, command: "tile_left" },
+            }),
+          );
+          return;
+        }
+        if (key === "ArrowRight") {
+          e.preventDefault();
+          window.dispatchEvent(
+            new CustomEvent("openclaw:window-command", {
+              detail: { storageKey, command: "tile_right" },
+            }),
+          );
+          return;
+        }
+        if (key === "ArrowUp") {
+          e.preventDefault();
+          window.dispatchEvent(
+            new CustomEvent("openclaw:window-command", {
+              detail: { storageKey, command: "maximize" },
+            }),
+          );
+          return;
+        }
+        if (key === "ArrowDown") {
+          e.preventDefault();
+          window.dispatchEvent(
+            new CustomEvent("openclaw:window-command", {
+              detail: { storageKey, command: "restore" },
+            }),
+          );
+          return;
+        }
+      }
 
       if (e.key === "Escape") {
         const top = getTopWindow();

@@ -6,7 +6,7 @@
 - “Desktop OS” page with window manager (`src/app/page.tsx`)
 - App registry + manifests (`src/apps/registry.ts`, `src/apps/types.ts`)
 - Window shell (`src/components/windows/AppWindowShell.tsx`)
-- Local-first storage (`src/lib/settings.ts`, `src/lib/drafts.ts`, `src/lib/publish.ts`, `src/lib/tasks.ts`)
+- Local-first storage (`src/lib/settings.ts`, `src/lib/drafts.ts`, `src/lib/publish.ts`, `src/lib/tasks.ts`, `src/lib/playbooks.ts`)
 - API routes (server-side) for LLM/OpenClaw/publish dispatch (`src/app/api/**`)
 
 ## Window manager model
@@ -15,7 +15,8 @@
 - Window visibility uses `AppState`: `closed | opening | open | minimized | closing`
 - Z-order is an array (`appZOrder`), last item is top-most
 - Active window is tracked separately to render “active” styling
-- Window shell persists drag offset via a `storageKey`
+- Window shell persists geometry (position + size) via a `storageKey`
+- Global shortcuts can dispatch window commands (tiling/maximize/restore)
 
 ## “Apps”
 
@@ -28,6 +29,11 @@ An app is a manifest:
 
 This keeps the desktop UI generic while allowing you to plug in new apps quickly.
 
+## Solutions Hub + Playbooks
+
+- Solutions Hub curates “mature workflow packs” that can be installed as Playbooks
+- Playbooks are local-first SOP records (export/import as JSON)
+
 ## Publishing flow
 
 1) A draft is created/saved (localStorage)
@@ -35,4 +41,4 @@ This keeps the desktop UI generic while allowing you to plug in new apps quickly
 3) Server generates per-platform variants (OpenClaw if available, else fallback)
 4) If “dispatch” mode and webhook URLs exist, server POSTs to webhooks (BYO connector)
 5) Connector returns receipts; Publisher can show recent receipts via connector proxy routes
-
+6) Publisher also maintains a local-first publish history and (in v0.2) a simple queued dispatcher while the window is open

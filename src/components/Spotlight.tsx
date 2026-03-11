@@ -5,6 +5,61 @@ import { createTask, updateTask, type TaskId } from "@/lib/tasks";
 
 type SpotlightApp = { id: string; name: string };
 
+type SpotlightHistoryEntry =
+  | { kind: "app"; id: string; name: string; ts: number; count: number }
+  | { kind: "command"; text: string; ts: number; count: number };
+
+type SpotlightItem =
+  | { kind: "command"; title: string; subtitle: string; message: string }
+  | { kind: "app"; app: SpotlightApp; meta?: string }
+  | { kind: "action"; id: string; title: string; subtitle: string; action: () => void | Promise<void> };
+
+const HISTORY_KEY = "openclaw.spotlight.history";
+const HISTORY_MAX = 40;
+
+function loadHistory(): SpotlightHistoryEntry[] {
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((x) => x as any)
+      .filter((x) => x && typeof x === "object")
+      .filter((x) => x.kind === "app" || x.kind === "command")
+      .map((x) => {
+        if (x.kind === "app") {
+          return {
+            kind: "app" as const,
+            id: String(x.id ?? ""),
+            name: String(x.name ?? ""),
+            ts: Number.isFinite(x.ts) ? Number(x.ts) : Date.now(),
+            count: Number.isFinite(x.count) ? Number(x.count) : 1,
+          };
+        }
+        return {
+          kind: "command" as const,
+          text: String(x.text ?? ""),
+          ts: Number.isFinite(x.ts) ? Number(x.ts) : Date.now(),
+          count: Number.isFinite(x.count) ? Number(x.count) : 1,
+        };
+      })
+      .filter((x) => (x.kind === "app" ? Boolean(x.id) : Boolean(x.text)))
+      .sort((a, b) => b.ts - a.ts)
+      .slice(0, HISTORY_MAX);
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(entries: SpotlightHistoryEntry[]) {
+  try {
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, HISTORY_MAX)));
+  } catch {
+    // ignore
+  }
+}
+
 export function Spotlight({
   open,
   onClose,
@@ -23,6 +78,7 @@ export function Spotlight({
   const [isRunning, setIsRunning] = useState(false);
   const taskIdRef = useRef<TaskId | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [history, setHistory] = useState<SpotlightHistoryEntry[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -31,6 +87,7 @@ export function Spotlight({
     setResult("");
     setIsRunning(false);
     setActiveIndex(0);
+    setHistory(loadHistory());
     const id = window.setTimeout(() => inputRef.current?.focus(), 0);
     return () => {
       window.clearTimeout(id);
@@ -48,9 +105,56 @@ export function Spotlight({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
-  const run = async () => {
-    const message = value.trim().replace(/^>\s*/, "");
+  const pushHistory = (
+    entry:
+      | { kind: "app"; id: string; name: string }
+      | { kind: "command"; text: string },
+  ) => {
+    setHistory((prev) => {
+      const now = Date.now();
+      const next = [...prev];
+      const idx =
+        entry.kind === "app"
+          ? next.findIndex((x) => x.kind === "app" && x.id === entry.id)
+          : next.findIndex((x) => x.kind === "command" && x.text === entry.text);
+      if (idx >= 0) {
+        const cur = next[idx] as any;
+        next[idx] = { ...cur, ts: now, count: (cur.count ?? 1) + 1 };
+      } else {
+        next.unshift(
+          entry.kind === "app"
+            ? { kind: "app", id: entry.id, name: entry.name, ts: now, count: 1 }
+            : { kind: "command", text: entry.text, ts: now, count: 1 },
+        );
+      }
+      const trimmed = next.sort((a, b) => b.ts - a.ts).slice(0, HISTORY_MAX);
+      saveHistory(trimmed);
+      return trimmed;
+    });
+  };
+
+  const clearHistory = () => {
+    setHistory([]);
+    saveHistory([]);
+    setResult("已清空 Spotlight 记录。");
+  };
+
+  const run = async (rawMessage?: string) => {
+    const message = (rawMessage ?? value).trim().replace(/^>\s*/, "");
     if (!message || isRunning) return;
+
+    const lower = message.toLowerCase();
+    if (
+      lower === "clear history" ||
+      lower === "history clear" ||
+      lower === "clear" ||
+      message === "清空" ||
+      message === "清空记录" ||
+      message === "清除记录"
+    ) {
+      clearHistory();
+      return;
+    }
 
     setIsRunning(true);
     setResult("");
@@ -59,6 +163,7 @@ export function Spotlight({
       status: "running",
       detail: message.slice(0, 80),
     });
+    pushHistory({ kind: "command", text: message });
 
     try {
       const res = await fetch("/api/openclaw/agent", {
@@ -94,33 +199,123 @@ export function Spotlight({
   };
 
   const items = useMemo(() => {
-    const q = value.trim().replace(/^>\s*/, "").toLowerCase();
-    const showCommand = Boolean(q);
-    const appMatches = q
+    const raw = value.trim();
+    const stripped = raw.replace(/^>\s*/, "");
+    const q = stripped.toLowerCase();
+    const isHelp = q === "?" || q === "help";
+    const forceCommand = raw.startsWith(">");
+
+    const appById = new Map(apps.map((a) => [a.id, a] as const));
+    const recentApps = history
+      .filter((h): h is Extract<SpotlightHistoryEntry, { kind: "app" }> => h.kind === "app")
+      .filter((h) => appById.has(h.id));
+    const recentCommands = history.filter((h): h is Extract<SpotlightHistoryEntry, { kind: "command" }> => h.kind === "command");
+    const appRecency = new Map<string, number>(recentApps.map((h) => [h.id, h.ts]));
+
+    const list: SpotlightItem[] = [];
+
+    if (isHelp) {
+      list.push(
+        {
+          kind: "action",
+          id: "help:cmd",
+          title: "指令模式",
+          subtitle: "用 `>` 前缀执行 Assistant 指令（例如：`> 帮我写一段文案`）。",
+          action: () => setValue("> "),
+        },
+        {
+          kind: "action",
+          id: "help:clear",
+          title: "清空 Spotlight 记录",
+          subtitle: "清除最近打开的应用与指令（仅本地）。",
+          action: () => clearHistory(),
+        },
+      );
+
+      if (recentCommands.length > 0) {
+        for (const c of recentCommands.slice(0, 4)) {
+          list.push({
+            kind: "command",
+            title: `Recent: ${c.text.slice(0, 64)}`,
+            subtitle: "Enter to re-run",
+            message: c.text,
+          });
+        }
+      }
+      return list;
+    }
+
+    const hasQuery = Boolean(q);
+    if (forceCommand && !hasQuery) {
+      list.push({
+        kind: "action",
+        id: "cmd:help",
+        title: "指令模式已开启",
+        subtitle: "输入内容后回车执行；输入 `?` 查看帮助。",
+        action: () => setValue("?"),
+      });
+      for (const c of recentCommands.slice(0, 6)) {
+        list.push({
+          kind: "command",
+          title: `Recent: ${c.text.slice(0, 64)}`,
+          subtitle: "Enter to re-run",
+          message: c.text,
+        });
+      }
+      return list;
+    }
+    const showCommand = forceCommand || hasQuery;
+    if (showCommand) {
+      list.push({
+        kind: "command",
+        title: `执行指令：${stripped || q}`,
+        subtitle: "Enter：执行 · ↑↓：选择 · ESC：关闭 · 输入 `?` 查看帮助",
+        message: stripped,
+      });
+    }
+
+    const appMatches = hasQuery
       ? apps
           .filter((a) => {
             const hay = `${a.name} ${a.id}`.toLowerCase();
             return hay.includes(q);
           })
+          .sort((a, b) => (appRecency.get(b.id) ?? 0) - (appRecency.get(a.id) ?? 0))
           .slice(0, 7)
-      : apps.slice(0, 7);
+      : [
+          ...recentApps
+            .slice(0, 5)
+            .map((h) => appById.get(h.id) ?? ({ id: h.id, name: h.name } as SpotlightApp))
+            .filter((a, idx, arr) => arr.findIndex((x) => x.id === a.id) === idx)
+            .filter((a) => appById.has(a.id)),
+          ...apps.filter((a) => !appRecency.has(a.id)),
+        ].slice(0, 7);
 
-    const list: Array<
-      | { kind: "command"; title: string; subtitle: string }
-      | { kind: "app"; app: SpotlightApp }
-    > = [];
-
-    if (showCommand) {
-      list.push({
-        kind: "command",
-        title: `执行指令：${q}`,
-        subtitle: "Enter：执行 · ↑↓：选择 · ESC：关闭",
-      });
+    for (const app of appMatches) {
+      const ts = appRecency.get(app.id);
+      list.push({ kind: "app", app, meta: ts ? "最近打开" : undefined });
     }
 
-    for (const app of appMatches) list.push({ kind: "app", app });
+    if (!hasQuery && recentCommands.length > 0) {
+      list.push({
+        kind: "action",
+        id: "recent:help",
+        title: "Spotlight 帮助",
+        subtitle: "输入 `?` 查看帮助与可用操作。",
+        action: () => setValue("?"),
+      });
+      for (const c of recentCommands.slice(0, 2)) {
+        list.push({
+          kind: "command",
+          title: `Recent: ${c.text.slice(0, 64)}`,
+          subtitle: "Enter to re-run",
+          message: c.text,
+        });
+      }
+    }
+
     return list;
-  }, [apps, value]);
+  }, [apps, history, value]);
 
   useEffect(() => {
     if (!open) return;
@@ -131,11 +326,16 @@ export function Spotlight({
     const item = items[activeIndex] ?? null;
     if (!item) return;
     if (item.kind === "app") {
+      pushHistory({ kind: "app", id: item.app.id, name: item.app.name });
       onOpenApp?.(item.app.id);
       onClose();
       return;
     }
-    await run();
+    if (item.kind === "action") {
+      await item.action();
+      return;
+    }
+    await run(item.message);
   };
 
   if (!open) return null;
@@ -219,6 +419,32 @@ export function Spotlight({
                         </button>
                       );
                     }
+                    if (item.kind === "action") {
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          role="option"
+                          aria-selected={active}
+                          onClick={() => setActiveIndex(idx)}
+                          onDoubleClick={() => {
+                            setActiveIndex(idx);
+                            activate();
+                          }}
+                          className={[
+                            "w-full text-left px-4 py-3 transition-colors",
+                            active ? "bg-white/10" : "hover:bg-white/5",
+                          ].join(" ")}
+                        >
+                          <div className="text-sm font-semibold text-white/90">
+                            {item.title}
+                          </div>
+                          <div className="text-[11px] text-white/55 mt-0.5">
+                            {item.subtitle}
+                          </div>
+                        </button>
+                      );
+                    }
                     return (
                       <button
                         key={item.app.id}
@@ -227,6 +453,7 @@ export function Spotlight({
                         aria-selected={active}
                         onClick={() => {
                           setActiveIndex(idx);
+                          pushHistory({ kind: "app", id: item.app.id, name: item.app.name });
                           onOpenApp?.(item.app.id);
                           onClose();
                         }}
@@ -243,7 +470,9 @@ export function Spotlight({
                             {item.app.id}
                           </div>
                         </div>
-                        <div className="text-[11px] text-white/55">打开</div>
+                        <div className="text-[11px] text-white/55">
+                          {item.meta ?? "打开"}
+                        </div>
                       </button>
                     );
                   })}

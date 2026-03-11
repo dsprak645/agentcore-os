@@ -14,9 +14,14 @@ export type PublishJobStatus = "queued" | "running" | "done" | "error" | "stoppe
 
 export type PublishJobRecord = {
   id: PublishJobId;
+  draftId?: string;
   draftTitle: string;
   platforms: PublishPlatformId[];
+  mode?: "dry-run" | "dispatch";
   status: PublishJobStatus;
+  attempts?: number;
+  maxAttempts?: number;
+  nextAttemptAt?: number;
   resultText?: string;
   createdAt: number;
   updatedAt: number;
@@ -65,16 +70,23 @@ export function getPublishJobs() {
 }
 
 export function createPublishJob(input: {
+  draftId?: string;
   draftTitle: string;
   platforms: PublishPlatformId[];
+  mode?: "dry-run" | "dispatch";
   status?: PublishJobStatus;
+  maxAttempts?: number;
 }) {
   const now = Date.now();
   const job: PublishJobRecord = {
     id: `${now}-${Math.random().toString(16).slice(2)}`,
+    draftId: input.draftId,
     draftTitle: input.draftTitle,
     platforms: input.platforms,
+    mode: input.mode,
     status: input.status ?? "queued",
+    attempts: 0,
+    maxAttempts: input.maxAttempts ?? 3,
     createdAt: now,
     updatedAt: now,
   };
@@ -96,4 +108,3 @@ export function removePublishJob(jobId: PublishJobId) {
   save(next);
   emit();
 }
-

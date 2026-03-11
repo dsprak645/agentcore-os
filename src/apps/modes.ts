@@ -6,6 +6,7 @@ export const modes: ModeManifest[] = [
     name: "默认桌面",
     desktopApps: [
       "solo_ops",
+      "solutions_hub",
       "media_ops",
       "creative_studio",
       "knowledge_vault",
@@ -32,6 +33,7 @@ export const modes: ModeManifest[] = [
     name: "AI 文案",
     desktopApps: [
       "solo_ops",
+      "solutions_hub",
       "media_ops",
       "creative_studio",
       "knowledge_vault",
@@ -58,6 +60,7 @@ export const modes: ModeManifest[] = [
     name: "工作流",
     desktopApps: [
       "solo_ops",
+      "solutions_hub",
       "media_ops",
       "creative_studio",
       "publisher",

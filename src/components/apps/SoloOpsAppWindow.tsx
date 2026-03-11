@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   BriefcaseBusiness,
   CheckCircle2,
@@ -14,6 +14,14 @@ import {
 
 import type { AppId, AppWindowProps } from "@/apps/types";
 import { AppWindowShell } from "@/components/windows/AppWindowShell";
+import {
+  deletePlaybook,
+  importPlaybooksFromText,
+  loadPlaybooks,
+  type Playbook,
+  type PlaybookAction,
+  createPlaybook,
+} from "@/lib/playbooks";
 import { requestOpenApp } from "@/lib/ui-events";
 
 type Step = {
@@ -57,6 +65,23 @@ export function SoloOpsAppWindow({
     }
   }, [showToast]);
 
+  const [myPlaybooks, setMyPlaybooks] = useState<Playbook[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+
+  const refreshPlaybooks = useCallback(() => {
+    setMyPlaybooks(loadPlaybooks());
+  }, []);
+
+  useEffect(() => {
+    refreshPlaybooks();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key && e.key.startsWith("openclaw.playbooks")) refreshPlaybooks();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [refreshPlaybooks]);
+
   const steps: Step[] = useMemo(
     () => [
       {
@@ -95,28 +120,42 @@ export function SoloOpsAppWindow({
     [],
   );
 
-  const playbooks = useMemo(
+  type BuiltinPlaybook = {
+    title: string;
+    desc: string;
+    icon: ReactNode;
+    actions: PlaybookAction[];
+  };
+
+  const builtInPlaybooks: BuiltinPlaybook[] = useMemo(
     () => [
       {
         title: "矩阵内容增长（小红书/抖音/Ins/TikTok）",
         desc: "一份选题产出 4 端版本 + 封面 + 发布清单；先预演再自动化。",
         icon: <Share2 className="h-4 w-4 text-emerald-600" />,
         actions: [
-          { label: "打开 AI 文案", onClick: () => requestOpenApp("media_ops") },
-          { label: "打开 发布中心", onClick: () => requestOpenApp("publisher") },
           {
+            type: "open_app",
+            appId: "media_ops",
+            label: "打开 AI 文案",
+          },
+          {
+            type: "open_app",
+            appId: "publisher",
+            label: "打开 发布中心",
+          },
+          {
+            type: "copy",
             label: "复制指令",
-            onClick: () =>
-              copy(
-                "请把以下选题做成矩阵内容包：\n" +
-                  "1) 小红书：标题 3 个 + 正文 + 话题标签\n" +
-                  "2) 抖音：口播脚本 + 字幕要点 + 结尾关注引导\n" +
-                  "3) Instagram：短文 + hashtag\n" +
-                  "4) TikTok：强钩子 + 快节奏脚本\n" +
-                  "选题：<在这里填你的主题/产品卖点>\n" +
-                  "目标用户：<在这里填>\n" +
-                  "约束：避免夸大、可直接发布。",
-              ),
+            text:
+              "请把以下选题做成矩阵内容包：\n" +
+              "1) 小红书：标题 3 个 + 正文 + 话题标签\n" +
+              "2) 抖音：口播脚本 + 字幕要点 + 结尾关注引导\n" +
+              "3) Instagram：短文 + hashtag\n" +
+              "4) TikTok：强钩子 + 快节奏脚本\n" +
+              "选题：<在这里填你的主题/产品卖点>\n" +
+              "目标用户：<在这里填>\n" +
+              "约束：避免夸大、可直接发布。",
           },
         ],
       },
@@ -125,16 +164,19 @@ export function SoloOpsAppWindow({
         desc: "把长视频快速剪成高光片段，并导出封面图用于各平台。",
         icon: <Video className="h-4 w-4 text-indigo-600" />,
         actions: [
-          { label: "打开 视觉工坊", onClick: () => requestOpenApp("creative_studio") },
           {
+            type: "open_app",
+            appId: "creative_studio",
+            label: "打开 视觉工坊",
+          },
+          {
+            type: "copy",
             label: "复制指令",
-            onClick: () =>
-              copy(
-                "请从视频中提取封面并剪出 15 秒高光片段：\n" +
-                  "- 封面：第 10 秒，文字标题 8 字以内\n" +
-                  "- 高光：从第 0 秒开始，节奏快\n" +
-                  "- 输出：cover.png + clip.mp4",
-              ),
+            text:
+              "请从视频中提取封面并剪出 15 秒高光片段：\n" +
+              "- 封面：第 10 秒，文字标题 8 字以内\n" +
+              "- 高光：从第 0 秒开始，节奏快\n" +
+              "- 输出：cover.png + clip.mp4",
           },
         ],
       },
@@ -143,15 +185,18 @@ export function SoloOpsAppWindow({
         desc: "把合同/素材/产品资料存进知识库，用问题驱动检索下一步该看什么。",
         icon: <HardDrive className="h-4 w-4 text-sky-600" />,
         actions: [
-          { label: "打开 知识库", onClick: () => requestOpenApp("knowledge_vault") },
           {
+            type: "open_app",
+            appId: "knowledge_vault",
+            label: "打开 知识库",
+          },
+          {
+            type: "copy",
             label: "复制提问模板",
-            onClick: () =>
-              copy(
-                "我想要达成的目标：<例如：写一篇公众号深度文/做一套销售话术>\n" +
-                  "当前资料包含：<例如：产品参数/历史合同/用户反馈>\n" +
-                  "请告诉我：最相关的 3 份资料 + 我还缺什么关键信息 + 下一步怎么做。",
-              ),
+            text:
+              "我想要达成的目标：<例如：写一篇公众号深度文/做一套销售话术>\n" +
+              "当前资料包含：<例如：产品参数/历史合同/用户反馈>\n" +
+              "请告诉我：最相关的 3 份资料 + 我还缺什么关键信息 + 下一步怎么做。",
           },
         ],
       },
@@ -160,8 +205,8 @@ export function SoloOpsAppWindow({
         desc: "把高转化标题、开头、评论区常见问题沉淀为可复用组件。",
         icon: <FileText className="h-4 w-4 text-amber-600" />,
         actions: [
-          { label: "打开 AI 文案", onClick: () => requestOpenApp("media_ops") },
-          { label: "打开 知识库", onClick: () => requestOpenApp("knowledge_vault") },
+          { type: "open_app", appId: "media_ops", label: "打开 AI 文案" },
+          { type: "open_app", appId: "knowledge_vault", label: "打开 知识库" },
         ],
       },
       {
@@ -170,14 +215,42 @@ export function SoloOpsAppWindow({
         icon: <Rocket className="h-4 w-4 text-rose-600" />,
         actions: [
           {
-            label: "打开 Spotlight",
-            onClick: () => copy("（Spotlight）请把下面问题生成 3 条不同语气的标准回复，并给出一句引导私信/关注的 CTA：\n问题：<在这里填用户提问>"),
+            type: "copy",
+            label: "复制 Spotlight 指令",
+            text:
+              "（Spotlight）请把下面问题生成 3 条不同语气的标准回复，并给出一句引导私信/关注的 CTA：\n" +
+              "问题：<在这里填用户提问>",
           },
-          { label: "打开 任务调度", onClick: () => requestOpenApp("task_manager") },
+          { type: "open_app", appId: "task_manager", label: "打开 任务调度" },
         ],
       },
     ],
+    [],
+  );
+
+  const runAction = useCallback(
+    (action: PlaybookAction) => {
+      if (action.type === "open_app") requestOpenApp(action.appId);
+      if (action.type === "copy") copy(action.text);
+    },
     [copy],
+  );
+
+  const saveBuiltinToMine = useCallback(
+    (p: BuiltinPlaybook) => {
+      const created = createPlaybook({
+        title: p.title,
+        desc: p.desc,
+        actions: p.actions,
+      });
+      if (!created) {
+        showToast("保存失败：标题为空");
+        return;
+      }
+      refreshPlaybooks();
+      showToast("已保存到“我的 Playbooks”");
+    },
+    [refreshPlaybooks, showToast],
   );
 
   return (
@@ -265,7 +338,7 @@ export function SoloOpsAppWindow({
                 这些是当前 WebOS 已经能跑起来的“组合拳”（先手动跑通，再接 webhook 实现自动发布）。
               </div>
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                {playbooks.map((p) => (
+                {builtInPlaybooks.map((p) => (
                   <div key={p.title} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -277,13 +350,20 @@ export function SoloOpsAppWindow({
                         </div>
                         <div className="mt-2 text-sm text-gray-600">{p.desc}</div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => saveBuiltinToMine(p)}
+                        className="shrink-0 px-3 py-2 rounded-xl bg-white text-gray-900 font-semibold text-xs border border-gray-200 hover:bg-gray-50 transition-colors"
+                      >
+                        保存
+                      </button>
                     </div>
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                       {p.actions.map((a) => (
                         <button
                           key={a.label}
                           type="button"
-                          onClick={a.onClick}
+                          onClick={() => runAction(a)}
                           className="px-3 py-2 rounded-xl bg-white text-gray-900 font-semibold text-xs border border-gray-200 hover:bg-gray-50 transition-colors"
                         >
                           {a.label}
@@ -297,6 +377,121 @@ export function SoloOpsAppWindow({
           </div>
 
           <div className="space-y-4">
+            <div className="rounded-2xl border border-gray-200 bg-white p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-gray-900">我的 Playbooks</div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => copy(JSON.stringify(myPlaybooks, null, 2))}
+                    className="px-3 py-2 rounded-xl bg-gray-50 text-gray-900 font-semibold text-xs border border-gray-200 hover:bg-gray-100 transition-colors"
+                  >
+                    导出全部
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportOpen((v) => !v)}
+                    className="px-3 py-2 rounded-xl bg-gray-50 text-gray-900 font-semibold text-xs border border-gray-200 hover:bg-gray-100 transition-colors"
+                  >
+                    导入
+                  </button>
+                </div>
+              </div>
+
+              {importOpen && (
+                <div className="mt-3 space-y-2">
+                  <textarea
+                    value={importText}
+                    onChange={(e) => setImportText(e.target.value)}
+                    placeholder="粘贴 Playbook JSON（单个对象或数组）"
+                    className="w-full h-28 rounded-2xl border border-gray-200 bg-white px-3 py-2 text-xs font-mono text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImportOpen(false);
+                        setImportText("");
+                      }}
+                      className="px-3 py-2 rounded-xl bg-white text-gray-900 font-semibold text-xs border border-gray-200 hover:bg-gray-50 transition-colors"
+                    >
+                      取消
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const res = importPlaybooksFromText(importText.trim());
+                        if (!res.ok) {
+                          showToast(`导入失败：${res.error}`);
+                          return;
+                        }
+                        refreshPlaybooks();
+                        showToast(`已导入 ${res.imported} 个 Playbook`);
+                        setImportOpen(false);
+                        setImportText("");
+                      }}
+                      className="px-3 py-2 rounded-xl bg-gray-900 text-white font-semibold text-xs hover:bg-black transition-colors"
+                    >
+                      导入
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 space-y-3">
+                {myPlaybooks.length === 0 ? (
+                  <div className="text-xs text-gray-500">
+                    还没有 Playbook。你可以在左侧的“成熟应用场景”里点「保存」。
+                  </div>
+                ) : (
+                  myPlaybooks.slice(0, 6).map((p) => (
+                    <div key={p.id} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-gray-900 truncate">{p.title}</div>
+                          <div className="mt-1 text-xs text-gray-600 line-clamp-2">{p.desc}</div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => copy(JSON.stringify(p, null, 2))}
+                            className="px-3 py-2 rounded-xl bg-white text-gray-900 font-semibold text-xs border border-gray-200 hover:bg-gray-50 transition-colors"
+                          >
+                            导出
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              deletePlaybook(p.id);
+                              refreshPlaybooks();
+                              showToast("已删除");
+                            }}
+                            className="px-3 py-2 rounded-xl bg-white text-gray-900 font-semibold text-xs border border-gray-200 hover:bg-gray-50 transition-colors"
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </div>
+                      {p.actions.length > 0 && (
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {p.actions.slice(0, 4).map((a) => (
+                            <button
+                              key={`${p.id}:${a.label}`}
+                              type="button"
+                              onClick={() => runAction(a)}
+                              className="px-3 py-2 rounded-xl bg-white text-gray-900 font-semibold text-xs border border-gray-200 hover:bg-gray-50 transition-colors"
+                            >
+                              {a.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
             <div className="rounded-2xl border border-gray-200 bg-white p-5">
               <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                 <Compass className="h-4 w-4 text-indigo-600" />

@@ -10,6 +10,7 @@ export type AppId =
   | "openclaw_console"
   | "publisher"
   | "solo_ops"
+  | "solutions_hub"
   | "settings";
 
 export type AppWindowState = "opening" | "open" | "minimized" | "closing";

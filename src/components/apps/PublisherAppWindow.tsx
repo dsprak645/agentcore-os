@@ -63,9 +63,11 @@ export function PublisherAppWindow({
   const [isDispatching, setIsDispatching] = useState(false);
   const taskIdRef = useRef<TaskId | null>(null);
   const jobIdRef = useRef<PublishJobId | null>(null);
+  const processingRef = useRef(false);
   const [connByPlatform, setConnByPlatform] = useState<
     Record<string, { token: string; webhookUrl: string }>
   >({});
+  const connByPlatformRef = useRef(connByPlatform);
   const [dispatchMode, setDispatchMode] = useState<"dry-run" | "dispatch">("dry-run");
   const [connectorOnline, setConnectorOnline] = useState<null | boolean>(null);
   const [connectorJobs, setConnectorJobs] = useState<any[] | null>(null);
@@ -104,6 +106,10 @@ export function PublisherAppWindow({
       cancelled = true;
     };
   }, [isVisible]);
+
+  useEffect(() => {
+    connByPlatformRef.current = connByPlatform;
+  }, [connByPlatform]);
 
   useEffect(() => {
     if (!isVisible) return;
@@ -186,98 +192,185 @@ export function PublisherAppWindow({
     updateDraft(selectedId, { title: nextTitle, body: nextBody, tags: selectedPlatforms });
   };
 
-  const dispatch = async () => {
+  const dispatch = () => {
     const nextTitle = title.trim() || "未命名草稿";
     const nextBody = body.trim();
     if (!nextBody) return;
     if (selectedPlatforms.length === 0) return;
 
-    saveCurrent();
-    setIsDispatching(true);
-    setResultText("");
+    const draftId = (() => {
+      const nextBody = body.trim();
+      if (!nextBody) return null;
+      if (!selectedId) {
+        const id = createDraft({ title: nextTitle, body: nextBody, tags: selectedPlatforms, source: "publisher" });
+        setSelectedId(id);
+        return id;
+      }
+      updateDraft(selectedId, { title: nextTitle, body: nextBody, tags: selectedPlatforms });
+      return selectedId;
+    })();
+    if (!draftId) return;
+
+    setResultText("已加入队列，等待执行…");
     setLastResults(null);
 
     const jobId = createPublishJob({
+      draftId,
       draftTitle: nextTitle,
       platforms: selectedPlatforms,
-      status: "running",
+      mode: dispatchMode,
+      status: "queued",
+      maxAttempts: dispatchMode === "dry-run" ? 1 : 3,
     });
     jobIdRef.current = jobId;
-    taskIdRef.current = createTask({
-      name: "Assistant - Publish",
-      status: "running",
-      detail: `${selectedPlatforms.join(", ")} | ${nextTitle.slice(0, 40)}`,
-    });
-
-    try {
-      const res = await fetch("/api/publish/dispatch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: nextTitle,
-          body: nextBody,
-          platforms: selectedPlatforms,
-          dryRun: dispatchMode === "dry-run",
-          connections: Object.fromEntries(
-            selectedPlatforms.map((p) => [
-              p,
-              {
-                token: connByPlatform[p]?.token ?? "",
-                webhookUrl: connByPlatform[p]?.webhookUrl ?? "",
-              },
-            ]),
-          ),
-        }),
-      });
-      const data = (await res.json().catch(() => null)) as
-        | null
-        | { ok?: boolean; text?: string; error?: string; results?: any; openclaw?: any };
-
-      if (!data) {
-        const error = "发布失败（无响应）";
-        setResultText(error);
-        if (jobIdRef.current)
-          updatePublishJob(jobIdRef.current, { status: "error", resultText: error });
-        if (taskIdRef.current) updateTask(taskIdRef.current, { status: "error", detail: error });
-        return;
-      }
-
-      const text = String(data.text ?? "").trim();
-      const results = Array.isArray((data as any).results) ? ((data as any).results as any[]) : null;
-      if (results) {
-        setLastResults(
-          results.map((r) => ({
-            platform: String(r?.platform ?? ""),
-            ok: Boolean(r?.ok),
-            mode: String(r?.mode ?? ""),
-            status: typeof r?.status === "number" ? r.status : undefined,
-            error: r?.error ? String(r.error) : undefined,
-          })),
-        );
-      }
-      if (!res.ok || !data.ok) {
-        const error = data.error || "发布失败";
-        const combined = text ? `${error}\n\n${text}` : error;
-        setResultText(combined);
-        if (jobIdRef.current)
-          updatePublishJob(jobIdRef.current, { status: "error", resultText: combined });
-        if (taskIdRef.current) updateTask(taskIdRef.current, { status: "error", detail: error });
-        return;
-      }
-
-      setResultText(text || "（无输出）");
-      if (jobIdRef.current)
-        updatePublishJob(jobIdRef.current, { status: "done", resultText: text });
-      if (taskIdRef.current) updateTask(taskIdRef.current, { status: "done" });
-    } catch (err) {
-      const error = err instanceof Error ? err.message : "请求异常";
-      setResultText(error);
-      if (jobIdRef.current) updatePublishJob(jobIdRef.current, { status: "error", resultText: error });
-      if (taskIdRef.current) updateTask(taskIdRef.current, { status: "error", detail: error });
-    } finally {
-      setIsDispatching(false);
-    }
   };
+
+  useEffect(() => {
+    if (!isVisible) return;
+    let cancelled = false;
+
+    const runOnce = async () => {
+      if (cancelled) return;
+      if (processingRef.current) return;
+
+      const now = Date.now();
+      const queued = getPublishJobs()
+        .filter((j) => j.status === "queued" && (j.nextAttemptAt ?? 0) <= now)
+        .sort((a, b) => a.createdAt - b.createdAt);
+      const job = queued[0];
+      if (!job) return;
+
+      processingRef.current = true;
+      setIsDispatching(true);
+      updatePublishJob(job.id, { status: "running" });
+
+      const isPrimary = jobIdRef.current === job.id;
+      const maxAttempts = job.maxAttempts ?? 3;
+      const attempt = (job.attempts ?? 0) + 1;
+      const mode = job.mode ?? "dry-run";
+
+      const draft = job.draftId ? getDrafts().find((d) => d.id === job.draftId) ?? null : null;
+      const nextTitle = draft?.title?.trim() || job.draftTitle;
+      const nextBody = draft?.body?.trim() || "";
+      const platforms = job.platforms ?? [];
+
+      const taskId = createTask({
+        name: "Assistant - Publish",
+        status: "running",
+        detail: `${platforms.join(", ")} | ${nextTitle.slice(0, 40)} | attempt ${attempt}/${maxAttempts}`,
+      });
+      if (isPrimary) taskIdRef.current = taskId;
+
+      try {
+        if (!nextBody || platforms.length === 0) {
+          const error = "队列任务无效：缺少内容或平台";
+          if (isPrimary) setResultText(error);
+          updatePublishJob(job.id, { status: "error", resultText: error, attempts: attempt });
+          updateTask(taskId, { status: "error", detail: error });
+          return;
+        }
+
+        const connections = Object.fromEntries(
+          platforms.map((p) => [
+            p,
+            {
+              token: connByPlatformRef.current[p]?.token ?? "",
+              webhookUrl: connByPlatformRef.current[p]?.webhookUrl ?? "",
+            },
+          ]),
+        );
+
+        const res = await fetch("/api/publish/dispatch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: nextTitle,
+            body: nextBody,
+            platforms,
+            dryRun: mode === "dry-run",
+            connections,
+          }),
+        });
+        const data = (await res.json().catch(() => null)) as
+          | null
+          | { ok?: boolean; text?: string; error?: string; results?: any; openclaw?: any };
+
+        if (!data) {
+          throw new Error("发布失败（无响应）");
+        }
+
+        const text = String(data.text ?? "").trim();
+        const results = Array.isArray((data as any).results) ? ((data as any).results as any[]) : null;
+        if (results && isPrimary) {
+          setLastResults(
+            results.map((r) => ({
+              platform: String(r?.platform ?? ""),
+              ok: Boolean(r?.ok),
+              mode: String(r?.mode ?? ""),
+              status: typeof r?.status === "number" ? r.status : undefined,
+              error: r?.error ? String(r.error) : undefined,
+            })),
+          );
+        }
+
+        if (!res.ok || !data.ok) {
+          const error = data.error || "发布失败";
+          const combined = text ? `${error}\n\n${text}` : error;
+          if (attempt < maxAttempts && mode === "dispatch") {
+            const backoffMs = Math.min(60_000, 1500 * 2 ** (attempt - 1));
+            updatePublishJob(job.id, {
+              status: "queued",
+              attempts: attempt,
+              nextAttemptAt: Date.now() + backoffMs,
+              resultText: combined,
+            });
+            if (isPrimary) setResultText(`失败，将在 ${Math.round(backoffMs / 1000)} 秒后重试：\n${combined}`);
+            updateTask(taskId, { status: "error", detail: error });
+            return;
+          }
+
+          if (isPrimary) setResultText(combined);
+          updatePublishJob(job.id, { status: "error", resultText: combined, attempts: attempt });
+          updateTask(taskId, { status: "error", detail: error });
+          return;
+        }
+
+        if (isPrimary) setResultText(text || "（无输出）");
+        updatePublishJob(job.id, { status: "done", resultText: text, attempts: attempt });
+        updateTask(taskId, { status: "done" });
+      } catch (err) {
+        const error = err instanceof Error ? err.message : "请求异常";
+        if (attempt < maxAttempts && mode === "dispatch") {
+          const backoffMs = Math.min(60_000, 1500 * 2 ** (attempt - 1));
+          updatePublishJob(job.id, {
+            status: "queued",
+            attempts: attempt,
+            nextAttemptAt: Date.now() + backoffMs,
+            resultText: error,
+          });
+          if (isPrimary) setResultText(`失败，将在 ${Math.round(backoffMs / 1000)} 秒后重试：\n${error}`);
+          updateTask(taskId, { status: "error", detail: error });
+          return;
+        }
+
+        if (isPrimary) setResultText(error);
+        updatePublishJob(job.id, { status: "error", resultText: error, attempts: attempt });
+        updateTask(taskId, { status: "error", detail: error });
+      } finally {
+        processingRef.current = false;
+        setIsDispatching(false);
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void runOnce();
+    }, 1100);
+    void runOnce();
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [isVisible]);
 
   return (
     <AppWindowShell

@@ -19,6 +19,15 @@ npm run dev
 
 Open `http://localhost:3000/`.
 
+## Keyboard shortcuts
+
+- `⌘K` / `Ctrl+K`: toggle Spotlight
+- `Esc` or `⌘W` / `Ctrl+W`: close top window
+- `⌘M` / `Ctrl+M`: minimize top window
+- `⌘⇧M` / `Ctrl+Shift+M`: restore all minimized windows
+- `⌘[` / `⌘]` (or `Ctrl[` / `Ctrl]`): cycle visible windows
+- `⌘⌥←/→/↑/↓` (or `Ctrl+Alt+←/→/↑/↓`): tile left/right, maximize, restore
+
 ## Optional: local webhook connector
 
 The app supports “bring-your-own” webhook connectors for publishing workflows.
@@ -38,4 +47,3 @@ In WebOS: **Settings → Accounts/Publishing** set `Publish Webhook URL` to:
 
 Some server routes call an external CLI (`openclaw`) to generate outputs.
 If the CLI is not installed/available, these routes will fail gracefully and some features will fall back.
-
