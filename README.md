@@ -10,13 +10,21 @@ so you can build desktop-like productivity experiences on the web without starti
 
 ## Project status
 
-**Status:** `v0.1.0` initial open-source release
+**Status:** `v0.2.0-alpha.1` (pre-release)
 
 This repository is an early public foundation release:
 - the core desktop UI shell is usable
 - example apps and connector flows are included
 - the project is intentionally conservative on automation and compliance
 - production hardening is **not** complete yet
+
+## What’s new in `v0.2.0-alpha.1`
+
+- Resizable windows + keyboard tiling/restore shortcuts
+- Spotlight recent history + `?` help actions
+- Playbooks: save/export/import runnable SOPs (local-first)
+- Solutions Hub: curated “mature workflow packs” you can install as Playbooks
+- Publisher: queued dispatch with basic retry/backoff (while Publisher is open)
 
 ## What it includes
 
@@ -81,6 +89,7 @@ This example connector only records receipts locally. It does **not** publish to
 
 ### Release notes
 - [v0.1.0](docs/releases/v0.1.0.md)
+- [v0.2.0-alpha.1](docs/releases/v0.2.0-alpha.1.md)
 - [v0.2.0 (draft)](docs/releases/v0.2.0-draft.md)
 
 ## Repository structure
